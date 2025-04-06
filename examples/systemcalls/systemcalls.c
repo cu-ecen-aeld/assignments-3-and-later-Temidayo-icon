@@ -1,5 +1,12 @@
 #include "systemcalls.h"
-
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdarg.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>       // <-- Required for fork, execv
+#include <fcntl.h>        // <-- Required for open
 /**
  * @param cmd the command to execute with system()
  * @return true if the command in @param cmd was executed
@@ -9,7 +16,22 @@
 */
 bool do_system(const char *cmd)
 {
+if (cmd == NULL) {
+        return false;
+    }
 
+    int ret = do_system(cmd);
+    if (ret == -1) {
+        return false;
+    }
+
+    // WIFEXITED checks if child terminated normally
+    // WEXITSTATUS gets the return code
+    if (WIFEXITED(ret) && WEXITSTATUS(ret) == 0) {
+        return true;
+    }
+
+    return false;
 /*
  * TODO  add your code here
  *  Call the system() function with the command set in the cmd
@@ -17,7 +39,7 @@ bool do_system(const char *cmd)
  *   or false() if it returned a failure
 */
 
-    return true;
+
 }
 
 /**
@@ -45,9 +67,29 @@ bool do_exec(int count, ...)
         command[i] = va_arg(args, char *);
     }
     command[count] = NULL;
+    va_end(args);
+
+    pid_t pid = fork();
+    if (pid == -1) {
+        return false;
+    } else if (pid == 0) {
+        // Child process
+        execv(command[0], command);
+        // If execv fails
+        exit(1);
+    } else {
+        // Parent process
+        int status;
+        if (waitpid(pid, &status, 0) == -1) {
+            return false;
+
+	 }
+
+        return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+    }
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    
 
 /*
  * TODO:
@@ -59,9 +101,7 @@ bool do_exec(int count, ...)
  *
 */
 
-    va_end(args);
-
-    return true;
+  
 }
 
 /**
@@ -82,7 +122,32 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    va_end(args);
+
+    pid_t pid = fork();
+    if (pid == -1) {
+        return false;
+    } else if (pid == 0) {
+        // Child process
+        int fd = open(outputfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd < 0) {
+            exit(1);
+        }
+
+        dup2(fd, STDOUT_FILENO);
+        close(fd);
+
+        execv(command[0], command);
+        exit(1);  // If exec fails
+     	 } else {
+        // Parent process
+        int status;
+        if (waitpid(pid, &status, 0) == -1) {
+            return false;
+        }
+
+        return WIFEXITED(status) && WEXITSTATUS(status) == 0;
+    }
 
 
 /*
@@ -93,7 +158,4 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *
 */
 
-    va_end(args);
-
-    return true;
 }
