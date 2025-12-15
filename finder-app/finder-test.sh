@@ -9,6 +9,7 @@ NUMFILES=10
 WRITESTR=AELD_IS_FUN
 WRITEDIR=/tmp/aeld-data
 #username=$(cat conf/username.txt)
+#assignment=$(cat conf/assignment.txt)
 username=$(cat /etc/finder-app/conf/username.txt)
 assignment=$(cat /etc/finder-app/conf/assignment.txt)
 
@@ -56,6 +57,10 @@ fi
 #echo "Copiling writer application..."
 #make
 
+# Use executables from PATH instead of compiling locally
+writer=$(which writer)
+finder_script=$(which finder.sh)
+
 for i in $( seq 1 $NUMFILES)
 do
 	#./writer "$WRITEDIR/${username}$i.txt" "$WRITESTR"
@@ -63,7 +68,7 @@ do
 done
 
 #OUTPUTSTRING=$(./finder.sh "$WRITEDIR" "$WRITESTR")
-OUTPUTSTRING=$(finder.sh "$WRITEDIR" "$WRITESTR")
+OUTPUTSTRING=$($fffinder_script "$WRITEDIR" "$WRITESTR")
 
 # Write result to /tmp/assignment4-result.txt (Assignment 4 requirement)
 echo "${OUTPUTSTRING}" > /tmp/assignment4-result.txt
